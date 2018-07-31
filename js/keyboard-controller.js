@@ -2,14 +2,14 @@ class keyboardController
 {
 	constructor(actions_to_bind, target)
 	{
+//массив с кодами нажатых кнопок
 		this.pressedKeys=[];
-
+		this.keys=[];
+		this.actions=[]
 		if (target!=undefined){this.attach(target);}
-		if (actions_to_bind!=undefined){this.actions=actions_to_bind;}
-		else {this.actions=[]}
-		
-		this.boundEnable=this.go.bind(this);
-		this.boundDisable=this.stop.bind(this);
+		if (actions_to_bind!=undefined){this.bindActions(actions_to_bind);}
+		this.boundCreateControlsActivateEvent=this.createControlsActivateEvent.bind(this);
+		this.boundCreateControlsDeactivateEvent=this.createControlsDeactivateEvent.bind(this);
 		this.enabled=true;
 		this.focused=true;
 	}
@@ -18,17 +18,29 @@ class keyboardController
 	bindActions(actions_to_bind){
 		if( Array.isArray( actions_to_bind ) ){
 			for (var i = 0, len = actions_to_bind.length; i < len; i++) {
-				this.actions.push(actions_to_bind[i]);
+						this.addKeys(actions_to_bind[i]);
+						this.actions.push(actions_to_bind[i]);
 			}	
 		}else{
 			this.actions.push( actions_to_bind );
+			this.addKeys(actions_to_bind);
 		}
 	}
 
+//Добавление действий в массив кнопок
+	addKeys(action)
+	{
+			for (var i = 0, len = action.keys.length; i < len; i++) {
+				if (this.keys[action.keys[i]]==undefined) {this.keys[action.keys[i]]=[];}
+				this.keys[action.keys[i]].push(action.name);
+			}
+	}
+
+//Получение ссылки на действие по названию
 	getActionByName( action_name ){
 		for (var i = 0, len = this.actions.length; i < len; i++) {
 			var _action = this.actions[i];
-			if ( _action.name == action ) return _action;
+			if ( _action.name == action_name ) return _action;
 		}
 		return null;
 	}
@@ -45,49 +57,57 @@ class keyboardController
 	}
 
 //Деактивирует объявленную активность - выключает генерацию событий для этой активности и при проверке через isActionActive возвращает false
-	disableAction(action)
+	disableAction( action_name )
 	{
-		for (var i = 0, len = this.actions.length; i < len; i++) {
-			if (this.actions[i].name==action){this.actions[i].active=false}
-		}	
+		var _action = this.getActionByName( action_name );
+		if( _action ) {
+			_action.active = false;
+			return true;
+		}
+		return false;
 	}
 
-	go(action){
-		if (this.enabled){
-			var keyCode=action.keyCode;
-			for (var i = 0, len = this.actions.length; i < len; i++) {
-				for (var j = 0, len1 = this.actions[i].keys.length; j < len1; j++){
-					if((this.actions[i].keys[j]==keyCode)&&(this.actions[i].active==true)&&(document.hasFocus()))
-					{
-						window[this.actions[i].name](this.target);
-						var elem=document.querySelector("#"+this.target);
-						var ev=new Event('controls:activate '+this.actions[i].name);
-						elem.dispatchEvent(ev);
-					}
+	createControlsActivateEvent(action){
+		var keyCode=action.keyCode;
+		this.pressedKeys[keyCode]=true;
+		if ((this.enabled)&&(this.keys[keyCode]!=undefined)){
+			var elem=document.querySelector("#"+this.target);
+			for (var i = 0, len = this.keys[keyCode].length; i < len; i++)
+			{
+				var _action = this.getActionByName( this.keys[keyCode][i] );
+				if (_action.active)
+				{
+					var activationEvent = new CustomEvent("controls:activate", {
+					detail: {
+								action: this.keys[keyCode][i]
+							}
+							});
+					var elem=document.querySelector("#"+this.target);
+					elem.dispatchEvent(activationEvent);
 				}
-			}
-			var flag=true;
-			for (var i = 0, len = this.pressedKeys.length; i < len; i++) {if (this.pressedKeys[i]==keyCode){flag=false}}
-			if (flag){this.pressedKeys.push(keyCode);}
+			}	
 		}
 	}
 
-	stop(action){
+	createControlsDeactivateEvent(action){
 		var keyCode=action.keyCode;
-
-		for (var i = 0, len = this.actions.length; i < len; i++) {
-		
-			for (var j = 0, len1 = this.actions[i].keys.length; j < len1; j++){
-				if(this.actions[i].keys[j]==keyCode){
-					var elem = document.querySelector("#"+this.target);
-					var ev = new Event('controls:deactivate '+this.actions[i].name);
+		this.pressedKeys[keyCode]=false;
+		if ((this.enabled)&&(this.keys[keyCode]!=undefined)){
+			var elem=document.querySelector("#"+this.target);
+			for (var i = 0, len = this.keys[keyCode].length; i < len; i++)
+			{
+				var _action = this.getActionByName( this.keys[keyCode][i] );
+				if (_action.active)
+				{
+					var deactivationEvent = new CustomEvent("controls:deactivate", {
+					detail: {
+								action: this.keys[keyCode][i]
+							}
+							});
+					var elem=document.querySelector("#"+this.target);
+					elem.dispatchEvent(deactivationEvent);
 				}
-			}
-
-			for (var i = 0, len = this.pressedKeys.length; i < len; i++) {
-				if (this.pressedKeys[i]==keyCode){this.pressedKeys.splice(i,1);}
-			}
-			
+			}	
 		}
 	}
 
@@ -96,17 +116,16 @@ class keyboardController
 		this.target=target;
 		var elem=document.querySelector("#"+target);
 		elem.classList.add("keyboardController");
-    	document.addEventListener("keydown", this.boundEnable, false);
-		document.addEventListener("keyup", this.boundDisable, false);
+    	document.addEventListener("keydown", this.boundCreateControlsActivateEvent, false);
+		document.addEventListener("keyup", this.boundCreateControlsDeactivateEvent, false);
     }
 
 //Отцепляет контроллер от активного DOM-елемента и деактивирует контроллер.
 	detach(){
-		console.log("detach");
 		var elem=document.querySelector("#"+this.target);
 		elem.classList.remove("keyboardController");
-		document.removeEventListener("keydown", this.boundEnable);
-		document.removeEventListener("keyup", this.boundDisable);
+		document.removeEventListener("keydown", this.boundCreateControlsActivateEvent);
+		document.removeEventListener("keyup", this.boundCreateControlsDeactivateEvent);
 	}
 
 //Проверяет активирована ли переданная активность в контроллере (зажата ли одна из соотвествующих этой активности кнопок)
@@ -120,10 +139,11 @@ class keyboardController
 
 //Проверяет нажата ли переданная кнопка в контроллере
 	isKeyPressed(key){
-		var result=false;
-		for (var i = 0, len = this.pressedKeys.length; i < len; i++) {
-			if (this.pressedKeys[i]==key){result=true;}
-		}
+		var result=this.pressedKeys[key];
+		if (result==undefined)
+			{
+				result=false;
+			}
 		return result;
 	}
 }

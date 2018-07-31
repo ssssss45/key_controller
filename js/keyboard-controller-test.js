@@ -1,10 +1,6 @@
-
-
 window.addEventListener('load', test );
 
 function test(){
-	
-	console.log("TEST");
 
 	var topLoc=200;
 	var leftLoc=200;
@@ -15,79 +11,42 @@ function test(){
 		active: true
 	};
 
-	var right={};
-	right.name="right";
-	right.keys=[39,68];
-	right.active=true;
+	var right={
+		name: "right",
+		keys: [39 , 68],
+		active: true
+	};
 
-	var up={};
-	up.name="up";
-	up.keys=[38 , 87];
-	up.active=true;
+	var up={
+		name: "up",
+		keys: [38 , 87],
+		active: true
+	};
 	
-	var list=[];
-	list.push(left);
-	list.push(right);
-	list.push(up);
-	
+	var list=[left, right, up];
 	var keycon= new keyboardController(list);
 	
 	keycon.attach("testdiv")
-	//keycon.attach("testdiv");
+	var testObject=document.getElementById("testdiv");
 
-	createButtons();
+	addButton("buttons","addDownButton","add down",addDown);
+	addButton("buttons","enableDisableButton","enable/disable",enableDisable);
+	addButton("buttons","detachButton","detach",detach);
+	addButton("buttons","attachButton","attach",attach);
+	addButton("buttons","isActiveButton","is left active",isLeftActive);
+	addButton("buttons","isPressedButton","is rightPressed",isRightPressed);
+	addButton("buttons","activateLeftButton","Activate left",activateLeft);
+	addButton("buttons","deactivateLeftButton","Deactivate left",deactivateLeft);
+	
 
-	function createButtons(key)
+	function addButton(container,id,text,func)
 	{
-		var buttons = document.getElementById("buttons");
-
-		var button1 = document.createElement("button");
-		button1.id = "addButton";
-		button1.textContent = "add down";
-		button1.onclick = addDown;
-		buttons.appendChild(button1);
-
-		var button2 = document.createElement("button");
-		button2.id = "disButton";
-		button2.textContent = "enable/disable";
-		button2.onclick = endis;
-		buttons.appendChild(button2);
-
-		var button3 = document.createElement("button");
-		button3.id = "detButton";
-		button3.textContent = "detach";
-		button3.onclick = detach;
-		buttons.appendChild(button3);
-
-		var button4 = document.createElement("button");
-		button4.id = "attButton";
-		button4.textContent = "attach";
-		button4.onclick = attach;
-		buttons.appendChild(button4);
-
-		var button5 = document.createElement("button");
-		button5.id = "activeButton";
-		button5.textContent = "is left active";
-		button5.onclick = isactive;
-		buttons.appendChild(button5);
-
-		var button6 = document.createElement("button");
-		button6.id = "pressedButton";
-		button6.textContent = "right is pressed";
-		button6.onclick = ispressed;
-		buttons.appendChild(button6);
-
-		var button7 = document.createElement("button");
-		button7.id = "activateleft";
-		button7.textContent = "activate left";
-		button7.onclick = activate;
-		buttons.appendChild(button7);
-
-		var button8 = document.createElement("button");
-		button8.id = "deactivateleft";
-		button8.textContent = "deactivate left";
-		button8.onclick = deactivate;
-		buttons.appendChild(button8);
+		var buttons = document.getElementById(container);
+		var button = document.createElement("button");
+		button.id = id;
+		button.textContent = text;
+		button.onclick = func;
+		buttons.appendChild(button);
 	}
 
 	function addDown()
@@ -99,9 +58,33 @@ function test(){
 		});
 	}
 
-	function endis()
+	function enableDisable()
 	{
 		keycon.enabled = !keycon.enabled;
+		leftActive=false;
+		rightActive=false;
+		upActive=false;
+		downActive=false;
+	}
+
+	function attach()
+	{
+		testObject.removeEventListener("controls:activate",function(e) {
+			activateListenerActions(e.detail.action);
+		});
+		testObject.removeEventListener("controls:activate",function(e) {
+			deactivateListenerActions(e.detail.action);
+		});
+		keycon.attach("testdiv1");
+		testObject=document.getElementById("testdiv1");
+		testObject.addEventListener("controls:activate",function(e) {
+			activateListenerActions(e.detail.action);
+		});
+		testObject.addEventListener("controls:deactivate",function(e) {
+			deactivateListenerActions(e.detail.action);
+		});
+		topLoc=300;
+		leftLoc=300;
 	}
 
 	function detach()
@@ -109,59 +92,89 @@ function test(){
 		keycon.detach();
 	}
 
-	function attach()
-	{
-		keycon.attach("testdiv1");
-	}
-
-	function ispressed()
+	function isRightPressed()
 	{
 		console.log(keycon.isKeyPressed(39));
 	}
 
-	function isactive()
+	function isLeftActive()
 	{
 		console.log(keycon.isActionActive("left"));
 	}
 
-	function activate()
+	function activateLeft()
 	{
 		keycon.enableAction("left");
 	}
-	function deactivate()
+	function deactivateLeft()
 	{
 		keycon.disableAction("left");
 	}
 
+	
 
-	function left(name)
+	testObject.addEventListener("controls:activate",function(e) {
+		activateListenerActions(e.detail.action);
+	});
+	testObject.addEventListener("controls:deactivate",function(e) {
+		deactivateListenerActions(e.detail.action);
+	});
+
+	var leftActive=false;
+	var rightActive=false;
+	var upActive=false;
+	var downActive=false;
+	moveLoop();
+
+	function activateListenerActions(action)
 	{
-		var element=document.getElementById(name);
-		leftLoc=leftLoc-10;
-		element.style.left=leftLoc+"px";
+		switch(action)
+		{
+			case "left": leftActive=true; break;
+			case "right": rightActive=true; break;
+			case "up": upActive=true; break;
+			case "down": downActive=true; break;
+		}
 	}
 
-	function right(name)
+	function deactivateListenerActions(action)
 	{
-		var element=document.getElementById(name);
-		leftLoc=leftLoc+10;
-		element.style.left=leftLoc+"px";
+		switch(action)
+		{
+			case "left": leftActive=false; break;
+			case "right": rightActive=false; break;
+			case "up": upActive=false; break;
+			case "down": downActive=false; break;
+		}
 	}
 
-	function up(name)
+	function moveLoop()
 	{
-		var element=document.getElementById(name);
-		topLoc=topLoc-10;
-		element.style.top=topLoc+"px";
+		if (leftActive) 
+		{
+			leftLoc=leftLoc-1;
+			testObject.style.left=leftLoc+"px";
+		}
+			
+		if (rightActive) 
+		{
+			leftLoc=leftLoc+1;
+			testObject.style.left=leftLoc+"px";
+		}
+			
+		if (upActive) 
+		{
+			topLoc=topLoc-1;
+			testObject.style.top=topLoc+"px";
+		}
+			
+		if (downActive) 
+		{
+			topLoc=topLoc+1;
+			testObject.style.top=topLoc+"px";
+		}
+		setTimeout(moveLoop,10);
 	}
-
-	function down(name)
-	{
-		var element=document.getElementById(name);
-		topLoc=topLoc+10;
-		element.style.top=topLoc+"px";
-	}
-
 }
 
 

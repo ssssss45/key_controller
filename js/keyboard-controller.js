@@ -6,24 +6,32 @@ class keyboardController
 		this.pressedKeys=[];
 		this.keys=[];
 		this.actions=[]
+		this.touchActions=[];
 		if (target!=undefined){this.attach(target);}
 		if (actions_to_bind!=undefined){this.bindActions(actions_to_bind);}
 		this.boundCreateControlsActivateEvent=this.createControlsActivateEvent.bind(this);
 		this.boundCreateControlsDeactivateEvent=this.createControlsDeactivateEvent.bind(this);
+		this.boundTouchStart=this.touchStart.bind(this);
+		this.boundTouchEnd=this.touchEnd.bind(this);
 		this.enabled=true;
 		this.focused=true;
+
+		this.currentTouchX;
+		this.currentTouchY;
 	}
 
 //Добавляет в контроллер переданные активности
 	bindActions(actions_to_bind){
 		if( Array.isArray( actions_to_bind ) ){
 			for (var i = 0, len = actions_to_bind.length; i < len; i++) {
-						this.addKeys(actions_to_bind[i]);
+						if (actions_to_bind[i].keys!=undefined){this.addKeys(actions_to_bind[i]);}
 						this.actions.push(actions_to_bind[i]);
+						if (actions_to_bind[i].coords!=undefined){this.touchActions.push(actions_to_bind[i]);}
 			}	
 		}else{
 			this.actions.push( actions_to_bind );
-			this.addKeys(actions_to_bind);
+			this.addKeys( actions_to_bind );
+			if (actions_to_bind.coords!=undefined){this.touchActions.push(actions_to_bind);}
 		}
 	}
 
@@ -67,6 +75,7 @@ class keyboardController
 		return false;
 	}
 
+//Создание события на нажатие клавиши
 	createControlsActivateEvent(action){
 		var keyCode=action.keyCode;
 		this.pressedKeys[keyCode]=true;
@@ -89,6 +98,7 @@ class keyboardController
 		}
 	}
 
+//Создание события на отжатие клавиши
 	createControlsDeactivateEvent(action){
 		var keyCode=action.keyCode;
 		this.pressedKeys[keyCode]=false;
@@ -111,6 +121,37 @@ class keyboardController
 		}
 	}
 
+//обработчик начала касания
+	touchStart(event){
+		if (event.type="touchstart")
+		{
+			console.log(event);
+			var touchobj = event.changedTouches[0]
+			this.currentTouchX=touchobj.pageX;
+			this.currentTouchY=touchobj.pageY;
+			event.preventDefault();
+		}
+	}
+
+//Обработчик события конца кaсания и генератор соответствующих событий
+	touchEnd(event){
+		var touchobj = event.changedTouches[0]
+		var changeX = this.currentTouchX-touchobj.pageX;
+		var changeY = this.currentTouchY-touchobj.pageY;
+		for (var i = 0, len = this.touchActions.length; i < len; i++) {
+			if ((changeX<this.touchActions[i].coords[0])&&(changeX>this.touchActions[i].coords[1])&&(changeY<this.touchActions[i].coords[2])&&(changeY>this.touchActions[i].coords[3]))
+			{
+				var swipeEvent = new CustomEvent("controls:swipe", {
+					detail: {
+								action: this.touchActions[i].name
+							}
+					});
+				var elem=document.querySelector("#"+this.target);
+				elem.dispatchEvent(swipeEvent);
+			}
+		}
+	}
+
 //Нацеливает контроллер на переданный DOM-елемент (вешает слушатели).
 	attach(target){
 		this.target=target;
@@ -118,6 +159,8 @@ class keyboardController
 		elem.classList.add("keyboardController");
     	document.addEventListener("keydown", this.boundCreateControlsActivateEvent, false);
 		document.addEventListener("keyup", this.boundCreateControlsDeactivateEvent, false);
+		document.addEventListener("touchstart",this.boundTouchStart,false);
+		document.addEventListener("touchend",this.boundTouchEnd,false);
     }
 
 //Отцепляет контроллер от активного DOM-елемента и деактивирует контроллер.
@@ -126,6 +169,8 @@ class keyboardController
 		elem.classList.remove("keyboardController");
 		document.removeEventListener("keydown", this.boundCreateControlsActivateEvent);
 		document.removeEventListener("keyup", this.boundCreateControlsDeactivateEvent);
+		document.removeEventListener("touchstart",this.boundTouchStart,false);
+		document.removeEventListener("touchend",this.boundTouchEnd,false);
 	}
 
 //Проверяет активирована ли переданная активность в контроллере (зажата ли одна из соотвествующих этой активности кнопок)

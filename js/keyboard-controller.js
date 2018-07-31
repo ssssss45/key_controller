@@ -11,8 +11,8 @@ class keyboardController
 		if (actions_to_bind!=undefined){this.bindActions(actions_to_bind);}
 		this.boundCreateControlsActivateEvent=this.createControlsActivateEvent.bind(this);
 		this.boundCreateControlsDeactivateEvent=this.createControlsDeactivateEvent.bind(this);
-		this.boundTouchStart=this.touchStart.bind(this);
-		this.boundTouchEnd=this.touchEnd.bind(this);
+		this.boundTouchClickStart=this.touchClickStart.bind(this);
+		this.boundTouchClickEnd=this.touchClickEnd.bind(this);
 		this.enabled=true;
 		this.focused=true;
 
@@ -24,9 +24,9 @@ class keyboardController
 	bindActions(actions_to_bind){
 		if( Array.isArray( actions_to_bind ) ){
 			for (var i = 0, len = actions_to_bind.length; i < len; i++) {
-						if (actions_to_bind[i].keys!=undefined){this.addKeys(actions_to_bind[i]);}
-						this.actions.push(actions_to_bind[i]);
-						if (actions_to_bind[i].coords!=undefined){this.touchActions.push(actions_to_bind[i]);}
+				if (actions_to_bind[i].keys!=undefined){this.addKeys(actions_to_bind[i]);}
+				this.actions.push(actions_to_bind[i]);
+				if (actions_to_bind[i].coords!=undefined){this.touchActions.push(actions_to_bind[i]);}
 			}	
 		}else{
 			this.actions.push( actions_to_bind );
@@ -38,10 +38,10 @@ class keyboardController
 //Добавление действий в массив кнопок
 	addKeys(action)
 	{
-			for (var i = 0, len = action.keys.length; i < len; i++) {
-				if (this.keys[action.keys[i]]==undefined) {this.keys[action.keys[i]]=[];}
-				this.keys[action.keys[i]].push(action.name);
-			}
+		for (var i = 0, len = action.keys.length; i < len; i++) {
+			if (this.keys[action.keys[i]]==undefined) {this.keys[action.keys[i]]=[];}
+			this.keys[action.keys[i]].push(action.name);
+		}
 	}
 
 //Получение ссылки на действие по названию
@@ -122,22 +122,36 @@ class keyboardController
 	}
 
 //обработчик начала касания
-	touchStart(event){
-		if (event.type="touchstart")
+	touchClickStart(event){
+		if (event.type=="touchstart")
 		{
-			console.log(event);
 			var touchobj = event.changedTouches[0]
 			this.currentTouchX=touchobj.pageX;
 			this.currentTouchY=touchobj.pageY;
+		}
+		if (event.type=="mousedown")
+		{
+			this.currentTouchX=event.pageX;
+			this.currentTouchY=event.pageY;
 			event.preventDefault();
 		}
+
 	}
 
 //Обработчик события конца кaсания и генератор соответствующих событий
-	touchEnd(event){
-		var touchobj = event.changedTouches[0]
-		var changeX = this.currentTouchX-touchobj.pageX;
-		var changeY = this.currentTouchY-touchobj.pageY;
+	touchClickEnd(event){
+		if (event.type=="touchend")
+		{
+			var touchobj = event.changedTouches[0]
+			var changeX = this.currentTouchX-touchobj.pageX;
+			var changeY = this.currentTouchY-touchobj.pageY;
+		}
+		if (event.type=="mouseup")
+		{
+			var changeX = this.currentTouchX-event.pageX;
+			var changeY = this.currentTouchY-event.pageY;
+		}
+
 		for (var i = 0, len = this.touchActions.length; i < len; i++) {
 			if ((changeX<this.touchActions[i].coords[0])&&(changeX>this.touchActions[i].coords[1])&&(changeY<this.touchActions[i].coords[2])&&(changeY>this.touchActions[i].coords[3]))
 			{
@@ -159,8 +173,10 @@ class keyboardController
 		elem.classList.add("keyboardController");
     	document.addEventListener("keydown", this.boundCreateControlsActivateEvent, false);
 		document.addEventListener("keyup", this.boundCreateControlsDeactivateEvent, false);
-		document.addEventListener("touchstart",this.boundTouchStart,false);
-		document.addEventListener("touchend",this.boundTouchEnd,false);
+		document.addEventListener("touchstart",this.boundTouchClickStart,false);
+		document.addEventListener("touchend",this.boundTouchClickEnd,false);
+		document.addEventListener("mousedown",this.boundTouchClickStart,false);
+		document.addEventListener("mouseup",this.boundTouchClickEnd,false);
     }
 
 //Отцепляет контроллер от активного DOM-елемента и деактивирует контроллер.
@@ -169,8 +185,10 @@ class keyboardController
 		elem.classList.remove("keyboardController");
 		document.removeEventListener("keydown", this.boundCreateControlsActivateEvent);
 		document.removeEventListener("keyup", this.boundCreateControlsDeactivateEvent);
-		document.removeEventListener("touchstart",this.boundTouchStart,false);
-		document.removeEventListener("touchend",this.boundTouchEnd,false);
+		document.removeEventListener("touchstart",this.boundTouchClickStart,false);
+		document.removeEventListener("touchend",this.boundTouchClickEnd,false);
+		document.removeEventListener("mousedown",this.boundTouchClickStart,false);
+		document.removeEventListener("mouseup",this.boundTouchClickEnd,false);
 	}
 
 //Проверяет активирована ли переданная активность в контроллере (зажата ли одна из соотвествующих этой активности кнопок)

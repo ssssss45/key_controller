@@ -25,10 +25,11 @@ function test(){
 
 	var list=[left, right, up];
 
-	addSwipeAction("swipeLeft",[Infinity,200,600,-600]);
-	addSwipeAction("swipeRight",[-200,-Infinity,600,-600]);
-	addSwipeAction("swipeUp",[600,-600,Infinity,200]);
-	addSwipeAction("swipeDown",[600,-600,-200,-Infinity]);
+	addSwipeAction("swipeLeft",[Infinity,200,400,-400]);
+	addSwipeAction("swipeRight",[-200,-Infinity,400,-400]);
+	addSwipeAction("swipeUp",[400,-400,Infinity,200]);
+	addSwipeAction("swipeDown",[400,-400,-200,-Infinity]);
+	addSwipeAction("stop",[50,-50, 50,-50]);
 
 	function addSwipeAction(name,coords)
 	{
@@ -41,7 +42,7 @@ function test(){
 	}
 	
 	var keycon= new keyboardController(list);
-	
+	var buttons = document.getElementById("buttons");
 	keycon.attach("testdiv")
 	var testObject=document.getElementById("testdiv");
 
@@ -91,6 +92,9 @@ function test(){
 		testObject.removeEventListener("controls:activate",function(e) {
 			deactivateListenerActions(e.detail.action);
 		});
+		testObject.removeEventListener("controls:swipe",function(e) {
+		swipeListenerActions(e.detail.action);
+		});
 		keycon.attach("testdiv1");
 		testObject=document.getElementById("testdiv1");
 		testObject.addEventListener("controls:activate",function(e) {
@@ -98,6 +102,9 @@ function test(){
 		});
 		testObject.addEventListener("controls:deactivate",function(e) {
 			deactivateListenerActions(e.detail.action);
+		});
+		testObject.addEventListener("controls:swipe",function(e) {
+		swipeListenerActions(e.detail.action);
 		});
 		topLoc=300;
 		leftLoc=300;
@@ -154,10 +161,11 @@ function test(){
 	{
 		switch(action)
 		{
-			case "swipeLeft": leftTimer=200; break;
-			case "swipeRight": rightTimer=200; break;
-			case "swipeUp": upTimer=200; break;
-			case "swipeDown": downTimer=200; break;
+			case "swipeLeft": leftTimer=200; rightTimer=0; break;
+			case "swipeRight": rightTimer=200; leftTimer=0; break;
+			case "swipeUp": upTimer=200; downTimer=0; break;
+			case "swipeDown": downTimer=200; upTimer=0; break;
+			case "stop": downTimer=0; upTimer=0; leftTimer=0; rightTimer=0; break;
 		}
 	}
 
